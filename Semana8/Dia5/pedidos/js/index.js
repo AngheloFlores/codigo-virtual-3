@@ -3,20 +3,129 @@ let mesasLista = document.getElementById("mesas__lista");
 let cargandoMesas = document.getElementById("cargandoMesas");
 let cartaCategorias = document.getElementById("carta__categorias");
 let cartaPlatos = document.getElementById("carta__platos");
+let comanda = document.getElementById("comanda");
+
 let categoria_id = 0;
 let global_mesa_id = 0;
-
+let global_pedidos = [];
+/**
+ * objPedido
+ * {
+ *  mesa_id:5,
+ *  platos:[
+ *    {
+ *      plato_id:1,
+ *      cant: 3,
+ *      precio: 75.00
+ *    },
+ *    {
+ *      plato_id:5,
+ *      cant: 1,
+ *      precio: 10.00
+ *    }
+ *  ]
+ * }
+ */
 /**
  * Funcion que agrega o resta una unidad al pedido de la mesa actual
  * Dado el identificador del plato
  * @param {*} accion "sumar|restar"
  * @param {*} id "id del plato a modificar"
+ * @param {*} precio "precio unitario del plato"
  */
-const sumarRestarPlato = (accion, id) => {
+const sumarRestarPlato = (accion, id, precio) => {
   if (global_mesa_id === 0) {
     return;
   }
-  //TODO: -----
+  // Encontrar el pedido de la mesa global seleccionada e el arreglo global de pedidos
+  let pedidoMesaActual = global_pedidos.find(
+    (pedido) => pedido.mesa_id === global_mesa_id
+  );
+
+  if (pedidoMesaActual) {
+    // significa que la mesa actual seleccionada, ya tenia un pedido iniciado
+    // preguntar si el plato ya existe en el pedido actual
+    if (pedidoMesaActual.platos.find((plato) => plato.plato_id == id)) {
+      // verifricar si el plato que estoy sumando o restando, ya existia en el pedido
+      pedidoMesaActual.platos = pedidoMesaActual.platos.filter((plato) => {
+        if (accion === "sumar") {
+          if (plato.plato_id == id) {
+            plato.cant = plato.cant + 1;
+            plato.precio = plato.cant * precio;
+          }
+        } else {
+          if (plato.plato_id == id) {
+            plato.cant = plato.cant - 1;
+            plato.precio = plato.cant * precio;
+          }
+        }
+
+        if (plato.cant > 0) {
+          return plato;
+        }
+      });
+    } else {
+      if (accion === "sumar") {
+        let objPlato = {
+          plato_id: id,
+          cant: 1,
+          precio: precio,
+        };
+        pedidoMesaActual.platos.push(objPlato);
+      }
+    }
+
+    console.log(global_pedidos);
+  } else {
+    // significa que la mesa actual iniciará su primer plato y primer pedido
+    if (accion === "sumar") {
+      let objPedido = {
+        mesa_id: global_mesa_id,
+        platos: [
+          {
+            plato_id: id,
+            cant: 1,
+            precio: precio,
+          },
+        ],
+      };
+      global_pedidos.push(objPedido);
+    }
+    console.log(global_pedidos);
+  }
+  dibujarComanda();
+};
+
+const dibujarComanda = () => {
+  comanda.innerHTML = "";
+  comanda.innerHTML = `<h4 class="comanda__mesa">${global_mesa_id}</h4>
+  <p class="comanda__usuario">Carlos Jimenez</p>
+  <hr />`;
+  let ul = document.createElement("ul");
+  ul.classList.add("comanda__lista");
+  // obtniendo el objeto de tipo pedido de la mesa actual seleccionada
+  let objPedidoActual = global_pedidos.find(
+    (pedido) => pedido.mesa_id == global_mesa_id
+  );
+
+  if (objPedidoActual) {
+    objPedidoActual.platos.forEach((plato) => {
+      const li = document.createElement("li");
+      li.classList.add("commanda__item");
+      li.innerHTML = `<p class="comanda__nombre">
+                      <span><strong>${plato.plato_id}</strong></span>
+                      <span>Precio: S/ ${plato.precio / plato.cant}</span>
+                    </p>
+                    <p class="comanda__cantidad">${plato.cant}</p>
+                    <p class="comanda__precio">
+                      <strong>S/ ${plato.precio}</strong>
+                    </p>`;
+      ul.appendChild(li);
+    });
+  } else {
+    ul.innerText = "Mesa libre";
+  }
+  comanda.appendChild(ul);
 };
 
 const dibujarMesas = (mesas) => {
@@ -42,6 +151,7 @@ const dibujarMesas = (mesas) => {
       });
       global_mesa_id = mesa.mesa_id;
       mesaLi.classList.add("active");
+      dibujarComanda();
     };
     fragment.appendChild(mesaLi);
   });
@@ -72,14 +182,14 @@ const dibujarPlatosPorCategoria = (platos, id) => {
       btnSumar.classList.add("btn", "btn-outline-primary", "btn-sumar");
       btnSumar.innerText = "+1";
       btnSumar.onclick = () => {
-        sumarRestarPlato("sumar", plato.plato_id);
+        sumarRestarPlato("sumar", plato.plato_id, plato.plato_pre);
       };
 
       const btnRestar = document.createElement("button");
       btnRestar.classList.add("btn", "btn-outline-primary", "btn-restar");
       btnRestar.innerText = "-1";
       btnRestar.onclick = () => {
-        sumarRestarPlato("restar", plato.plato_id);
+        sumarRestarPlato("restar", plato.plato_id, plato.plato_pre);
       };
 
       btnContenedor.appendChild(btnRestar);
